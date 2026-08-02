@@ -13,16 +13,23 @@ import {
 interface DailyEntryModalProps {
   date: string;
   entries: PerformanceEntry[];
+  saving: boolean;
+  deletingEntryId: string | null;
   onClose: () => void;
   onAddEntry: (
-    entry: Omit<PerformanceEntry, "id">,
-  ) => void;
-  onDeleteEntry: (id: string) => void;
+    entry: Omit<
+      PerformanceEntry,
+      "id" | "createdAt"
+    >,
+  ) => Promise<boolean>;
+  onDeleteEntry: (id: string) => Promise<void>;
 }
 
 export default function DailyEntryModal({
   date,
   entries,
+  saving,
+  deletingEntryId,
   onClose,
   onAddEntry,
   onDeleteEntry,
@@ -51,53 +58,60 @@ export default function DailyEntryModal({
     };
   }, [onClose]);
 
-  function handleSave() {
-    const trimmedPercentage = percentage.trim();
-    const trimmedAmount = amount.trim();
+  async function handleSave() {
+  const trimmedPercentage = percentage.trim();
+  const trimmedAmount = amount.trim();
 
-    if (!trimmedPercentage && !trimmedAmount) {
-      setError(
-        "Enter a percentage, an amount, or both.",
-      );
-      return;
-    }
-
-    const percentageValue = trimmedPercentage
-      ? Number(trimmedPercentage)
-      : null;
-
-    const amountValue = trimmedAmount
-      ? Number(trimmedAmount)
-      : null;
-
-    if (
-      percentageValue !== null &&
-      !Number.isFinite(percentageValue)
-    ) {
-      setError("Enter a valid percentage.");
-      return;
-    }
-
-    if (
-      amountValue !== null &&
-      !Number.isFinite(amountValue)
-    ) {
-      setError("Enter a valid amount.");
-      return;
-    }
-
-    onAddEntry({
-      date,
-      percentage: percentageValue,
-      amount: amountValue,
-      notes: notes.trim() || undefined,
-    });
-
-    setPercentage("");
-    setAmount("");
-    setNotes("");
-    setError("");
+  if (!trimmedPercentage && !trimmedAmount) {
+    setError(
+      "Enter a percentage, an amount, or both.",
+    );
+    return;
   }
+
+  const percentageValue = trimmedPercentage
+    ? Number(trimmedPercentage)
+    : null;
+
+  const amountValue = trimmedAmount
+    ? Number(trimmedAmount)
+    : null;
+
+  if (
+    percentageValue !== null &&
+    !Number.isFinite(percentageValue)
+  ) {
+    setError("Enter a valid percentage.");
+    return;
+  }
+
+  if (
+    amountValue !== null &&
+    !Number.isFinite(amountValue)
+  ) {
+    setError("Enter a valid amount.");
+    return;
+  }
+
+  const wasSaved = await onAddEntry({
+    date,
+    percentage: percentageValue,
+    amount: amountValue,
+    notes: notes.trim() || undefined,
+  });
+
+  if (!wasSaved) {
+    setError(
+      "The entry could not be saved. Try again.",
+    );
+    return;
+  }
+
+  setPercentage("");
+  setAmount("");
+  setNotes("");
+  setError("");
+}
 
   return (
     <div
@@ -226,9 +240,10 @@ export default function DailyEntryModal({
                   </div>
 
                   <button
-                    type="button"
-                    onClick={() =>
-                      onDeleteEntry(entry.id)
+                     type="button"
+                     disabled={deletingEntryId === entry.id}
+                     onClick={() =>
+                        void onDeleteEntry(entry.id)
                     }
                     className="rounded-lg border border-red-500/30 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10"
                   >
@@ -314,10 +329,11 @@ export default function DailyEntryModal({
 
             <button
               type="button"
-              onClick={handleSave}
-              className="rounded-xl bg-white px-5 py-3 font-medium text-black hover:bg-neutral-200"
+              onClick={() => void handleSave()}
+              disabled={saving}
+              className="rounded-xl bg-white px-5 py-3 font-medium text-black hover:bg-neutral-200 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Add entry
+              {saving ? "Saving..." : "Add entry"}
             </button>
           </div>
         </div>
