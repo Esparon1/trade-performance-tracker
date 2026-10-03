@@ -1,4 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 
 import type { Session } from "@supabase/supabase-js";
 
@@ -68,12 +72,20 @@ function App() {
       )
     : [];
 
+  /*
+   * =====================================================
+   * LOAD ENTRIES
+   * =====================================================
+   */
+
   const loadEntries = useCallback(async () => {
     setEntriesLoading(true);
     setError("");
 
     try {
-      const storedEntries = await getEntries();
+      const storedEntries =
+        await getEntries();
+
       setEntries(storedEntries);
     } catch (caughtError) {
       setError(
@@ -85,6 +97,12 @@ function App() {
       setEntriesLoading(false);
     }
   }, []);
+
+  /*
+   * =====================================================
+   * AUTH
+   * =====================================================
+   */
 
   useEffect(() => {
     void supabase.auth
@@ -119,12 +137,20 @@ function App() {
     }
   }, [session, loadEntries]);
 
+  /*
+   * =====================================================
+   * MONTH NAVIGATION
+   * =====================================================
+   */
+
   function handlePreviousMonth() {
     if (month === 0) {
       setMonth(11);
+
       setYear(
         (currentYear) => currentYear - 1,
       );
+
       return;
     }
 
@@ -136,9 +162,11 @@ function App() {
   function handleNextMonth() {
     if (month === 11) {
       setMonth(0);
+
       setYear(
         (currentYear) => currentYear + 1,
       );
+
       return;
     }
 
@@ -146,6 +174,12 @@ function App() {
       (currentMonth) => currentMonth + 1,
     );
   }
+
+  /*
+   * =====================================================
+   * ADD ENTRY
+   * =====================================================
+   */
 
   async function handleAddEntry(
     newEntry: Omit<
@@ -179,6 +213,12 @@ function App() {
     }
   }
 
+  /*
+   * =====================================================
+   * DELETE ENTRY
+   * =====================================================
+   */
+
   async function handleDeleteEntry(
     id: string,
   ): Promise<void> {
@@ -204,6 +244,12 @@ function App() {
     }
   }
 
+  /*
+   * =====================================================
+   * AUTH LOADING
+   * =====================================================
+   */
+
   if (authLoading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-neutral-950 text-neutral-400">
@@ -212,17 +258,53 @@ function App() {
     );
   }
 
+  /*
+   * =====================================================
+   * LOGIN
+   * =====================================================
+   */
+
   if (!session) {
     return <AuthForm />;
   }
 
+  /*
+   * =====================================================
+   * DASHBOARD
+   * =====================================================
+   */
+
   return (
-    <main className="min-h-screen bg-neutral-950 px-4 py-8 text-white sm:px-8">
-      <div className="mx-auto max-w-7xl">
+    <main className="relative min-h-screen bg-[#080a09] px-4 py-8 text-white sm:px-8">
+
+      {/* ================================================= */}
+      {/* BACKGROUND IMAGE                                  */}
+      {/* ================================================= */}
+
+      <div
+        className="pointer-events-none fixed inset-0 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage:
+            "url('/dashboard-background.png')",
+        }}
+      />
+
+      {/* ================================================= */}
+      {/* DARK OVERLAY                                      */}
+      {/* ================================================= */}
+
+      <div className="pointer-events-none fixed inset-0 bg-black/15" />
+
+      {/* ================================================= */}
+      {/* DASHBOARD                                         */}
+      {/* ================================================= */}
+
+      <div className="relative z-10 mx-auto max-w-7xl">
+
         <Header />
 
         {error && (
-          <div className="mb-5 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          <div className="mb-5 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300 backdrop-blur-md">
             {error}
           </div>
         )}
@@ -237,8 +319,12 @@ function App() {
           month={month}
           year={year}
           displayMode={displayMode}
-          onPreviousMonth={handlePreviousMonth}
-          onNextMonth={handleNextMonth}
+          onPreviousMonth={
+            handlePreviousMonth
+          }
+          onNextMonth={
+            handleNextMonth
+          }
           onMonthChange={setMonth}
           onYearChange={setYear}
           onDisplayModeChange={
@@ -247,7 +333,7 @@ function App() {
         />
 
         {entriesLoading ? (
-          <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-10 text-center text-neutral-400">
+          <div className="rounded-xl border border-neutral-800 bg-neutral-900/80 p-10 text-center text-neutral-400 backdrop-blur-sm">
             Loading your entries...
           </div>
         ) : (
@@ -259,7 +345,12 @@ function App() {
             onDayClick={setSelectedDate}
           />
         )}
+
       </div>
+
+      {/* ================================================= */}
+      {/* DAILY ENTRY MODAL                                 */}
+      {/* ================================================= */}
 
       {selectedDate && (
         <DailyEntryModal
@@ -272,12 +363,15 @@ function App() {
           onClose={() =>
             setSelectedDate(null)
           }
-          onAddEntry={handleAddEntry}
+          onAddEntry={
+            handleAddEntry
+          }
           onDeleteEntry={
             handleDeleteEntry
           }
         />
       )}
+
     </main>
   );
 }

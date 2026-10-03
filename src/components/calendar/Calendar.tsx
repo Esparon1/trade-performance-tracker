@@ -31,48 +31,64 @@ export default function Calendar({
   displayMode,
   onDayClick,
 }: CalendarProps) {
-  const calendarDays = getCalendarDays(year, month);
+  const calendarDays =
+    getCalendarDays(year, month);
 
   return (
-    <section>
+    <section className="overflow-hidden rounded-2xl border border-white/[0.07] bg-black/15 p-3 shadow-[0_20px_60px_rgba(0,0,0,0.18)] backdrop-blur-sm sm:p-4">
+
+      {/* ============================================= */}
+      {/* WEEKDAYS                                      */}
+      {/* ============================================= */}
+
       <div className="mb-2 grid grid-cols-7 gap-2">
         {weekdays.map((weekday) => (
           <div
             key={weekday}
-            className="py-2 text-center text-sm text-neutral-500"
+            className="py-2.5 text-center text-xs font-medium uppercase tracking-[0.12em] text-neutral-500"
           >
             {weekday.slice(0, 3)}
           </div>
         ))}
       </div>
 
+      {/* ============================================= */}
+      {/* DAYS                                          */}
+      {/* ============================================= */}
+
       <div className="grid grid-cols-7 gap-2">
-        {calendarDays.map((calendarDay, index) => {
-          if (!calendarDay) {
+        {calendarDays.map(
+          (calendarDay, index) => {
+            if (!calendarDay) {
+              return (
+                <div
+                  key={`empty-${index}`}
+                  aria-hidden="true"
+                />
+              );
+            }
+
+            const dayEntries =
+              entries.filter(
+                (entry) =>
+                  entry.date ===
+                  calendarDay.date,
+              );
+
             return (
-              <div
-                key={`empty-${index}`}
-                aria-hidden="true"
+              <CalendarDay
+                key={calendarDay.date}
+                day={calendarDay.day}
+                date={calendarDay.date}
+                entries={dayEntries}
+                displayMode={displayMode}
+                onClick={onDayClick}
               />
             );
-          }
-
-          const dayEntries = entries.filter(
-            (entry) => entry.date === calendarDay.date,
-          );
-
-          return (
-            <CalendarDay
-              key={calendarDay.date}
-              day={calendarDay.day}
-              date={calendarDay.date}
-              entries={dayEntries}
-              displayMode={displayMode}
-              onClick={onDayClick}
-            />
-          );
-        })}
+          },
+        )}
       </div>
+
     </section>
   );
 }
