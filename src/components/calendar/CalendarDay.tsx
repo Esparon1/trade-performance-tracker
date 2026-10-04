@@ -1,5 +1,4 @@
 import type {
-  DisplayMode,
   PerformanceEntry,
 } from "../../types/entry";
 
@@ -15,36 +14,111 @@ import {
 
 interface CalendarDayProps {
   day: number;
+
   date: string;
+
   entries: PerformanceEntry[];
-  displayMode: DisplayMode;
-  onClick: (date: string) => void;
+
+  onClick: (
+    date: string,
+  ) => void;
 }
 
 export default function CalendarDay({
   day,
   date,
   entries,
-  displayMode,
   onClick,
 }: CalendarDayProps) {
-  const hasEntries = entries.length > 0;
+  const hasEntries =
+    entries.length > 0;
 
   const totals =
-    calculateDailyTotals(entries);
+    calculateDailyTotals(
+      entries,
+    );
 
   const direction =
-    getEntryDirection(totals);
+    getEntryDirection(
+      totals,
+    );
 
   const isPositive =
-    direction === "positive";
+    direction ===
+    "positive";
 
   const isNegative =
-    direction === "negative";
+    direction ===
+    "negative";
 
   /*
    * =====================================================
-   * CELL STYLE
+   * CURRENCIES USED THIS DAY
+   * =====================================================
+   */
+
+  const currencies =
+    Array.from(
+      new Set(
+        entries
+          .map(
+            (entry) =>
+              entry.currency,
+          )
+          .filter(
+            (
+              currency,
+            ): currency is
+              NonNullable<
+                typeof currency
+              > =>
+              currency !== null,
+          ),
+      ),
+    );
+
+  const hasMixedCurrencies =
+    currencies.length > 1;
+
+  const dayCurrency =
+    currencies.length === 1
+      ? currencies[0]
+      : null;
+
+  /*
+   * =====================================================
+   * PERCENTAGE
+   * =====================================================
+   *
+   * Old trades can still contain manually entered
+   * percentages.
+   *
+   * New trades currently have percentage = null until
+   * we implement the account-equity return engine.
+   */
+
+  const percentageEntries =
+    entries.filter(
+      (entry) =>
+        entry.percentage !==
+        null,
+    );
+
+  const hasPercentage =
+    percentageEntries.length > 0;
+
+  const percentageTotal =
+    percentageEntries.reduce(
+      (sum, entry) =>
+        sum +
+        (entry.percentage ??
+          0),
+      0,
+    );
+
+  /*
+   * =====================================================
+   * APPEARANCE
    * =====================================================
    */
 
@@ -64,11 +138,13 @@ export default function CalendarDay({
   return (
     <button
       type="button"
-      onClick={() => onClick(date)}
+      onClick={() =>
+        onClick(date)
+      }
       className={`
         group
         relative
-        min-h-28
+        min-h-32
         overflow-hidden
         rounded-xl
         border
@@ -81,12 +157,10 @@ export default function CalendarDay({
         hover:shadow-[0_12px_30px_rgba(0,0,0,0.25)]
         ${backgroundClass}
       `}
-      aria-label={`Open entries for ${date}`}
+      aria-label={`Open trades for ${date}`}
     >
 
-      {/* ============================================= */}
-      {/* PROFIT GLOW                                   */}
-      {/* ============================================= */}
+      {/* POSITIVE GLOW */}
 
       {isPositive && (
         <>
@@ -96,9 +170,7 @@ export default function CalendarDay({
         </>
       )}
 
-      {/* ============================================= */}
-      {/* LOSS GLOW                                     */}
-      {/* ============================================= */}
+      {/* NEGATIVE GLOW */}
 
       {isNegative && (
         <>
@@ -108,11 +180,10 @@ export default function CalendarDay({
         </>
       )}
 
-      {/* ============================================= */}
-      {/* TOP ROW                                       */}
-      {/* ============================================= */}
+      {/* TOP */}
 
       <div className="relative flex items-start justify-between gap-2">
+
         <span
           className={`text-sm font-medium ${
             hasEntries
@@ -128,61 +199,89 @@ export default function CalendarDay({
             {entries.length} trades
           </span>
         )}
+
       </div>
 
-      {/* ============================================= */}
-      {/* PERFORMANCE                                   */}
-      {/* ============================================= */}
+      {/* MAIN P/L */}
 
       {hasEntries && (
-        <div className="relative mt-4 space-y-1">
+        <div className="relative mt-5">
 
-          {(displayMode === "percentage" ||
-            displayMode === "both") && (
-            <p
-              className={`text-base font-semibold ${
-                totals.percentage >= 0
-                  ? "text-emerald-400"
-                  : "text-red-400"
-              }`}
-            >
-              {formatPercentage(
-                totals.percentage,
-              )}
-            </p>
-          )}
+          {hasMixedCurrencies ? (
+            <div>
+              <p className="text-sm font-semibold text-amber-300">
+                Mixed currencies
+              </p>
 
-          {(displayMode === "amount" ||
-            displayMode === "both") && (
-            <p
-              className={`${
-                displayMode === "both"
-                  ? "text-sm font-medium"
-                  : "text-base font-semibold"
-              } ${
-                totals.amount >= 0
-                  ? "text-emerald-400"
-                  : "text-red-400"
-              }`}
-            >
-              {formatAmount(
-                totals.amount,
+              <p className="mt-1 text-[10px] text-neutral-500">
+                FX conversion required
+              </p>
+            </div>
+          ) : (
+            <div>
+              <p
+                className={`text-lg font-semibold tracking-tight ${
+                  totals.amount >=
+                  0
+                    ? "text-emerald-400"
+                    : "text-red-400"
+                }`}
+              >
+                {formatAmount(
+                  totals.amount,
+                )}
+              </p>
+
+              {dayCurrency && (
+                <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.12em] text-neutral-500">
+                  {dayCurrency}
+                </p>
               )}
-            </p>
+            </div>
           )}
 
         </div>
       )}
 
-      {/* ============================================= */}
-      {/* VIEW DETAILS                                  */}
-      {/* ============================================= */}
+      {/* PERCENTAGE - BOTTOM RIGHT */}
+
+      {hasEntries && (
+        <div className="absolute bottom-3 right-3">
+
+          {hasPercentage ? (
+            <span
+              className={`text-xs font-semibold ${
+                percentageTotal >=
+                0
+                  ? "text-emerald-400/90"
+                  : "text-red-400/90"
+              }`}
+            >
+              {formatPercentage(
+                percentageTotal,
+              )}
+            </span>
+          ) : (
+            <span
+              className="text-xs text-neutral-600"
+              title="Return calculation will be available after account balance calculations are enabled."
+            >
+              —
+            </span>
+          )}
+
+        </div>
+      )}
+
+      {/* VIEW DETAILS */}
 
       {hasEntries && (
         <div className="pointer-events-none absolute inset-x-2 bottom-2 translate-y-1 opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100">
-          <div className="rounded-lg border border-white/[0.08] bg-black/80 px-2 py-1.5 text-center text-[11px] font-medium text-neutral-200 backdrop-blur-md">
+
+          <div className="rounded-lg border border-white/[0.08] bg-black/90 px-2 py-1.5 text-center text-[11px] font-medium text-neutral-200 backdrop-blur-md">
             View details
           </div>
+
         </div>
       )}
 

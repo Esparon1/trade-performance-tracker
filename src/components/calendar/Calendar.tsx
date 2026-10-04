@@ -1,17 +1,21 @@
 import type {
-  DisplayMode,
   PerformanceEntry,
 } from "../../types/entry";
 
 import { getCalendarDays } from "../../utils/calendar";
+
 import CalendarDay from "./CalendarDay";
 
 interface CalendarProps {
   year: number;
+
   month: number;
+
   entries: PerformanceEntry[];
-  displayMode: DisplayMode;
-  onDayClick: (date: string) => void;
+
+  onDayClick: (
+    date: string,
+  ) => void;
 }
 
 const weekdays = [
@@ -28,37 +32,46 @@ export default function Calendar({
   year,
   month,
   entries,
-  displayMode,
   onDayClick,
 }: CalendarProps) {
   const calendarDays =
-    getCalendarDays(year, month);
+    getCalendarDays(
+      year,
+      month,
+    );
 
   return (
     <section className="overflow-hidden rounded-2xl border border-white/[0.07] bg-black/15 p-3 shadow-[0_20px_60px_rgba(0,0,0,0.18)] backdrop-blur-sm sm:p-4">
 
-      {/* ============================================= */}
-      {/* WEEKDAYS                                      */}
-      {/* ============================================= */}
+      {/* WEEK DAYS */}
 
       <div className="mb-2 grid grid-cols-7 gap-2">
-        {weekdays.map((weekday) => (
-          <div
-            key={weekday}
-            className="py-2.5 text-center text-xs font-medium uppercase tracking-[0.12em] text-neutral-500"
-          >
-            {weekday.slice(0, 3)}
-          </div>
-        ))}
+
+        {weekdays.map(
+          (weekday) => (
+            <div
+              key={weekday}
+              className="py-2.5 text-center text-xs font-medium uppercase tracking-[0.12em] text-neutral-500"
+            >
+              {weekday.slice(
+                0,
+                3,
+              )}
+            </div>
+          ),
+        )}
+
       </div>
 
-      {/* ============================================= */}
-      {/* DAYS                                          */}
-      {/* ============================================= */}
+      {/* DAYS */}
 
       <div className="grid grid-cols-7 gap-2">
+
         {calendarDays.map(
-          (calendarDay, index) => {
+          (
+            calendarDay,
+            index,
+          ) => {
             if (!calendarDay) {
               return (
                 <div
@@ -77,16 +90,26 @@ export default function Calendar({
 
             return (
               <CalendarDay
-                key={calendarDay.date}
-                day={calendarDay.day}
-                date={calendarDay.date}
-                entries={dayEntries}
-                displayMode={displayMode}
-                onClick={onDayClick}
+                key={
+                  calendarDay.date
+                }
+                day={
+                  calendarDay.day
+                }
+                date={
+                  calendarDay.date
+                }
+                entries={
+                  dayEntries
+                }
+                onClick={
+                  onDayClick
+                }
               />
             );
           },
         )}
+
       </div>
 
     </section>
