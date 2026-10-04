@@ -19,6 +19,12 @@ interface CalendarDayProps {
 
   entries: PerformanceEntry[];
 
+  returnPercentage:
+    | number
+    | null;
+
+  currency: string;
+
   onClick: (
     date: string,
   ) => void;
@@ -28,6 +34,8 @@ export default function CalendarDay({
   day,
   date,
   entries,
+  returnPercentage,
+  currency,
   onClick,
 }: CalendarDayProps) {
   const hasEntries =
@@ -50,77 +58,6 @@ export default function CalendarDay({
   const isNegative =
     direction ===
     "negative";
-
-  /*
-   * =====================================================
-   * CURRENCIES USED THIS DAY
-   * =====================================================
-   */
-
-  const currencies =
-    Array.from(
-      new Set(
-        entries
-          .map(
-            (entry) =>
-              entry.currency,
-          )
-          .filter(
-            (
-              currency,
-            ): currency is
-              NonNullable<
-                typeof currency
-              > =>
-              currency !== null,
-          ),
-      ),
-    );
-
-  const hasMixedCurrencies =
-    currencies.length > 1;
-
-  const dayCurrency =
-    currencies.length === 1
-      ? currencies[0]
-      : null;
-
-  /*
-   * =====================================================
-   * PERCENTAGE
-   * =====================================================
-   *
-   * Old trades can still contain manually entered
-   * percentages.
-   *
-   * New trades currently have percentage = null until
-   * we implement the account-equity return engine.
-   */
-
-  const percentageEntries =
-    entries.filter(
-      (entry) =>
-        entry.percentage !==
-        null,
-    );
-
-  const hasPercentage =
-    percentageEntries.length > 0;
-
-  const percentageTotal =
-    percentageEntries.reduce(
-      (sum, entry) =>
-        sum +
-        (entry.percentage ??
-          0),
-      0,
-    );
-
-  /*
-   * =====================================================
-   * APPEARANCE
-   * =====================================================
-   */
 
   let backgroundClass =
     "border-white/[0.07] bg-[#141716]/90 hover:border-white/[0.16] hover:bg-[#191c1b]";
@@ -207,64 +144,48 @@ export default function CalendarDay({
       {hasEntries && (
         <div className="relative mt-5">
 
-          {hasMixedCurrencies ? (
-            <div>
-              <p className="text-sm font-semibold text-amber-300">
-                Mixed currencies
-              </p>
+          <p
+            className={`text-lg font-semibold tracking-tight ${
+              totals.amount >= 0
+                ? "text-emerald-400"
+                : "text-red-400"
+            }`}
+          >
+            {formatAmount(
+              totals.amount,
+            )}
+          </p>
 
-              <p className="mt-1 text-[10px] text-neutral-500">
-                FX conversion required
-              </p>
-            </div>
-          ) : (
-            <div>
-              <p
-                className={`text-lg font-semibold tracking-tight ${
-                  totals.amount >=
-                  0
-                    ? "text-emerald-400"
-                    : "text-red-400"
-                }`}
-              >
-                {formatAmount(
-                  totals.amount,
-                )}
-              </p>
-
-              {dayCurrency && (
-                <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.12em] text-neutral-500">
-                  {dayCurrency}
-                </p>
-              )}
-            </div>
-          )}
+          <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.12em] text-neutral-500">
+            {currency}
+          </p>
 
         </div>
       )}
 
-      {/* PERCENTAGE - BOTTOM RIGHT */}
+      {/* CALCULATED DAILY RETURN */}
 
       {hasEntries && (
         <div className="absolute bottom-3 right-3">
 
-          {hasPercentage ? (
+          {returnPercentage !==
+          null ? (
             <span
               className={`text-xs font-semibold ${
-                percentageTotal >=
-                0
+                returnPercentage >= 0
                   ? "text-emerald-400/90"
                   : "text-red-400/90"
               }`}
+              title="Daily return based on account equity at the start of the day."
             >
               {formatPercentage(
-                percentageTotal,
+                returnPercentage,
               )}
             </span>
           ) : (
             <span
               className="text-xs text-neutral-600"
-              title="Return calculation will be available after account balance calculations are enabled."
+              title="Set a positive starting capital and starting date in Account Parameters to calculate returns."
             >
               —
             </span>

@@ -27,6 +27,12 @@ import {
 } from "./services/accounts";
 
 import {
+  createCashFlow,
+  deleteCashFlow,
+  getCashFlows,
+} from "./services/cashFlows";
+
+import {
   assignUnassignedEntries,
   createEntry,
   deleteEntry,
@@ -45,6 +51,11 @@ import type {
   CurrencyCode,
   UserSettings,
 } from "./types/account";
+
+import type {
+  CashFlow,
+  CreateCashFlowInput,
+} from "./types/cashFlow";
 
 import type {
   PerformanceEntry,
@@ -95,6 +106,11 @@ function App() {
   const [
     entriesLoading,
     setEntriesLoading,
+  ] = useState(false);
+
+  const [
+    cashFlowsLoading,
+    setCashFlowsLoading,
   ] = useState(false);
 
   const [
@@ -149,6 +165,13 @@ function App() {
     setEntries,
   ] = useState<
     PerformanceEntry[]
+  >([]);
+
+  const [
+    cashFlows,
+    setCashFlows,
+  ] = useState<
+    CashFlow[]
   >([]);
 
   const [
@@ -234,6 +257,33 @@ function App() {
 
   /*
    * =====================================================
+   * ACCOUNT CASH FLOWS
+   * =====================================================
+   */
+
+  const accountCashFlows =
+    useMemo(
+      () => {
+        if (
+          !selectedAccountId
+        ) {
+          return [];
+        }
+
+        return cashFlows.filter(
+          (cashFlow) =>
+            cashFlow.accountId ===
+            selectedAccountId,
+        );
+      },
+      [
+        cashFlows,
+        selectedAccountId,
+      ],
+    );
+
+  /*
+   * =====================================================
    * OLD UNASSIGNED TRADES
    * =====================================================
    */
@@ -297,6 +347,46 @@ function App() {
           );
         } finally {
           setEntriesLoading(
+            false,
+          );
+        }
+      },
+      [],
+    );
+
+  /*
+   * =====================================================
+   * LOAD CASH FLOWS
+   * =====================================================
+   */
+
+  const loadCashFlows =
+    useCallback(
+      async () => {
+        setCashFlowsLoading(
+          true,
+        );
+
+        setError("");
+
+        try {
+          const storedCashFlows =
+            await getCashFlows();
+
+          setCashFlows(
+            storedCashFlows,
+          );
+        } catch (
+          caughtError
+        ) {
+          setError(
+            caughtError instanceof
+              Error
+              ? caughtError.message
+              : "Could not load cash flows.",
+          );
+        } finally {
+          setCashFlowsLoading(
             false,
           );
         }
@@ -419,16 +509,23 @@ function App() {
             !nextSession
           ) {
             setEntries([]);
+
+            setCashFlows([]);
+
             setAccounts([]);
+
             setUserSettings(
               null,
             );
+
             setSelectedAccountId(
               null,
             );
+
             setSelectedDate(
               null,
             );
+
             setSettingsOpen(
               false,
             );
@@ -454,10 +551,13 @@ function App() {
 
     void loadEntries();
 
+    void loadCashFlows();
+
     void loadSettingsAndAccounts();
   }, [
     session,
     loadEntries,
+    loadCashFlows,
     loadSettingsAndAccounts,
   ]);
 
@@ -482,7 +582,7 @@ function App() {
       accounts.some(
         (account) =>
           account.id ===
-          selectedAccountId &&
+            selectedAccountId &&
           account.status ===
             "active",
       );
@@ -565,6 +665,7 @@ function App() {
     newEntry: AddEntryInput,
   ): Promise<boolean> {
     setSaving(true);
+
     setError("");
 
     try {
@@ -639,6 +740,136 @@ function App() {
       setDeletingEntryId(
         null,
       );
+    }
+  }
+
+  /*
+   * =====================================================
+   * ADD CASH FLOW
+   * =====================================================
+   */
+
+  async function handleAddCashFlow(
+    input: CreateCashFlowInput,
+  ): Promise<boolean> {
+    setError("");
+
+    try {
+      const account =
+        accounts.find(
+          (
+            currentAccount,
+          ) =>
+            currentAccount.id ===
+            input.accountId,
+        );
+
+      if (!account) {
+        throw new Error(
+          "The selected account could not be found.",
+        );
+      }
+
+      /*
+       * Currency is controlled by the
+       * account, not by user input.
+       */
+      if (
+        input.currency !==
+        account.defaultCurrency
+      ) {
+        throw new Error(
+          "Cash flow currency must match the account currency.",
+        );
+      }
+
+      /*
+       * Do not allow a cash flow before
+       * the account's performance start.
+       */
+      if (
+        account.startingDate &&
+        input.date <
+          account.startingDate
+      ) {
+        throw new Error(
+          "Cash flow cannot be before the account starting date.",
+        );
+      }
+
+      const savedCashFlow =
+        await createCashFlow(
+          input,
+        );
+
+      setCashFlows(
+        (
+          currentCashFlows,
+        ) => [
+          savedCashFlow,
+          ...currentCashFlows,
+        ],
+      );
+
+      return true;
+    } catch (
+      caughtError
+    ) {
+      setError(
+        caughtError instanceof
+          Error
+          ? caughtError.message
+          : "Could not save the cash flow.",
+      );
+
+      return false;
+    }
+  }
+
+  /*
+   * =====================================================
+   * DELETE CASH FLOW
+   * =====================================================
+   */
+
+  async function handleDeleteCashFlow(
+    id: string,
+  ): Promise<void> {
+    setError("");
+
+    try {
+      await deleteCashFlow(
+        id,
+      );
+
+      setCashFlows(
+        (
+          currentCashFlows,
+        ) =>
+          currentCashFlows.filter(
+            (cashFlow) =>
+              cashFlow.id !==
+              id,
+          ),
+      );
+    } catch (
+      caughtError
+    ) {
+      const message =
+        caughtError instanceof
+          Error
+          ? caughtError.message
+          : "Could not delete the cash flow.";
+
+      setError(
+        message,
+      );
+
+      /*
+       * CashFlowSection uses this rejection
+       * to know the delete did not succeed.
+       */
+      throw caughtError;
     }
   }
 
@@ -802,7 +1033,6 @@ function App() {
 
   return (
     <main className="relative min-h-screen bg-[#080a09] px-4 py-8 text-white sm:px-8">
-
       {/* BACKGROUND */}
 
       <div
@@ -818,7 +1048,6 @@ function App() {
       {/* DASHBOARD */}
 
       <div className="relative z-10 mx-auto max-w-7xl">
-
         <Header
           onOpenSettings={() =>
             setSettingsOpen(
@@ -868,7 +1097,6 @@ function App() {
           0 &&
           selectedAccount && (
             <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] px-5 py-4 backdrop-blur-md">
-
               <div>
                 <p className="text-sm font-medium text-amber-200">
                   {
@@ -911,7 +1139,6 @@ function App() {
                   ? "Assigning..."
                   : `Assign to ${selectedAccount.name}`}
               </button>
-
             </div>
           )}
 
@@ -919,13 +1146,30 @@ function App() {
 
         {selectedAccount ? (
           <>
-            <SummaryCards
-              entries={
-                accountEntries
-              }
-              month={month}
-              year={year}
-            />
+            {cashFlowsLoading ? (
+              <div className="mb-4 rounded-xl border border-white/[0.07] bg-black/20 px-4 py-3 text-sm text-neutral-500 backdrop-blur-sm">
+                Loading account
+                cash flow...
+              </div>
+            ) : (
+              <SummaryCards
+                entries={
+                  accountEntries
+                }
+                cashFlows={
+                  accountCashFlows
+                }
+                account={
+                  selectedAccount
+                }
+                month={
+                  month
+                }
+                year={
+                  year
+                }
+              />
+            )}
 
             <CalendarHeader
               month={month}
@@ -944,9 +1188,12 @@ function App() {
               }
             />
 
-            {entriesLoading ? (
+            {entriesLoading ||
+            cashFlowsLoading ? (
               <div className="rounded-xl border border-neutral-800 bg-neutral-900/80 p-10 text-center text-neutral-400 backdrop-blur-sm">
-                Loading your trades...
+                Loading your
+                account
+                performance...
               </div>
             ) : (
               <Calendar
@@ -954,6 +1201,12 @@ function App() {
                 month={month}
                 entries={
                   accountEntries
+                }
+                cashFlows={
+                  accountCashFlows
+                }
+                account={
+                  selectedAccount
                 }
                 onDayClick={
                   setSelectedDate
@@ -964,13 +1217,17 @@ function App() {
         ) : (
           !settingsLoading && (
             <div className="rounded-2xl border border-white/[0.07] bg-black/30 p-10 text-center backdrop-blur-md">
-
               <h2 className="text-lg font-medium text-white">
-                No account selected
+                No account
+                selected
               </h2>
 
               <p className="mt-2 text-sm text-neutral-500">
-                Create an account in Settings to start tracking performance.
+                Create an
+                account in
+                Settings to start
+                tracking
+                performance.
               </p>
 
               <button
@@ -984,11 +1241,9 @@ function App() {
               >
                 Open Settings
               </button>
-
             </div>
           )
         )}
-
       </div>
 
       {/* DAILY TRADE MODAL */}
@@ -1036,6 +1291,9 @@ function App() {
             accounts={
               accounts
             }
+            cashFlows={
+              cashFlows
+            }
             onClose={() =>
               setSettingsOpen(
                 false,
@@ -1050,6 +1308,12 @@ function App() {
             onUpdateAccount={
               handleUpdateAccount
             }
+            onAddCashFlow={
+              handleAddCashFlow
+            }
+            onDeleteCashFlow={
+              handleDeleteCashFlow
+            }
           />
         )}
 
@@ -1062,7 +1326,6 @@ function App() {
             Loading settings...
           </div>
         )}
-
     </main>
   );
 }

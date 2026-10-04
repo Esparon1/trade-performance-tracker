@@ -11,9 +11,19 @@ import type {
   UserSettings,
 } from "../../types/account";
 
+import type {
+  CashFlow,
+  CreateCashFlowInput,
+} from "../../types/cashFlow";
+
+import CashFlowSection from "./CashFlowSection";
+
 interface SettingsModalProps {
   settings: UserSettings;
+
   accounts: Account[];
+
+  cashFlows: CashFlow[];
 
   onClose: () => void;
 
@@ -29,12 +39,21 @@ interface SettingsModalProps {
   onUpdateAccount: (
     account: Account,
   ) => Promise<void>;
+
+  onAddCashFlow: (
+    input: CreateCashFlowInput,
+  ) => Promise<boolean>;
+
+  onDeleteCashFlow: (
+    id: string,
+  ) => Promise<void>;
 }
 
 type SettingsSection =
   | "general"
   | "accounts"
-  | "parameters";
+  | "parameters"
+  | "cash-flow";
 
 const canadianAccountTypes = [
   "TFSA",
@@ -63,10 +82,13 @@ const americanAccountTypes = [
 export default function SettingsModal({
   settings,
   accounts,
+  cashFlows,
   onClose,
   onSaveSettings,
   onCreateAccount,
   onUpdateAccount,
+  onAddCashFlow,
+  onDeleteCashFlow,
 }: SettingsModalProps) {
   const [section, setSection] =
     useState<SettingsSection>(
@@ -159,7 +181,8 @@ export default function SettingsModal({
   const [
     parameterCurrency,
     setParameterCurrency,
-  ] = useState<CurrencyCode>("CAD");
+  ] =
+    useState<CurrencyCode>("CAD");
 
   const [
     startingCapital,
@@ -169,7 +192,8 @@ export default function SettingsModal({
   const [
     startingCapitalCurrency,
     setStartingCapitalCurrency,
-  ] = useState<CurrencyCode>("CAD");
+  ] =
+    useState<CurrencyCode>("CAD");
 
   const [
     startingDate,
@@ -289,6 +313,7 @@ export default function SettingsModal({
       setError(
         "Enter an account name.",
       );
+
       return;
     }
 
@@ -319,7 +344,9 @@ export default function SettingsModal({
         "Account created.",
       );
 
-      setSection("parameters");
+      setSection(
+        "parameters",
+      );
     } catch (caughtError) {
       setError(
         caughtError instanceof Error
@@ -346,21 +373,27 @@ export default function SettingsModal({
       setError(
         "Account name cannot be empty.",
       );
+
       return;
     }
 
     const parsedCapital =
       startingCapital.trim() === ""
         ? null
-        : Number(startingCapital);
+        : Number(
+            startingCapital,
+          );
 
     if (
       parsedCapital !== null &&
-      Number.isNaN(parsedCapital)
+      Number.isNaN(
+        parsedCapital,
+      )
     ) {
       setError(
         "Starting capital must be a valid number.",
       );
+
       return;
     }
 
@@ -372,7 +405,8 @@ export default function SettingsModal({
       await onUpdateAccount({
         ...selectedAccount,
 
-        name: parameterName.trim(),
+        name:
+          parameterName.trim(),
 
         accountType:
           parameterType,
@@ -405,7 +439,6 @@ export default function SettingsModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8">
-
       {/* BACKDROP */}
 
       <button
@@ -418,11 +451,9 @@ export default function SettingsModal({
       {/* PANEL */}
 
       <div className="relative z-10 flex max-h-[88vh] w-full max-w-5xl overflow-hidden rounded-3xl border border-white/[0.10] bg-[#0d100f]/95 shadow-[0_30px_100px_rgba(0,0,0,0.65)]">
-
         {/* SIDEBAR */}
 
         <aside className="hidden w-56 shrink-0 border-r border-white/[0.07] bg-black/20 p-5 sm:block">
-
           <div className="mb-8">
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-emerald-400">
               Configuration
@@ -434,13 +465,15 @@ export default function SettingsModal({
           </div>
 
           <nav className="space-y-2">
-
             <SettingsButton
               active={
-                section === "general"
+                section ===
+                "general"
               }
               onClick={() =>
-                setSection("general")
+                setSection(
+                  "general",
+                )
               }
             >
               General
@@ -448,10 +481,13 @@ export default function SettingsModal({
 
             <SettingsButton
               active={
-                section === "accounts"
+                section ===
+                "accounts"
               }
               onClick={() =>
-                setSection("accounts")
+                setSection(
+                  "accounts",
+                )
               }
             >
               Accounts
@@ -471,22 +507,37 @@ export default function SettingsModal({
               Account Parameters
             </SettingsButton>
 
+            <SettingsButton
+              active={
+                section ===
+                "cash-flow"
+              }
+              onClick={() =>
+                setSection(
+                  "cash-flow",
+                )
+              }
+            >
+              Cash Flow
+            </SettingsButton>
           </nav>
         </aside>
 
         {/* CONTENT */}
 
         <div className="min-w-0 flex-1 overflow-y-auto p-6 sm:p-8">
-
           {/* MOBILE NAV */}
 
           <div className="mb-6 flex gap-2 overflow-x-auto sm:hidden">
             <SettingsButton
               active={
-                section === "general"
+                section ===
+                "general"
               }
               onClick={() =>
-                setSection("general")
+                setSection(
+                  "general",
+                )
               }
             >
               General
@@ -494,10 +545,13 @@ export default function SettingsModal({
 
             <SettingsButton
               active={
-                section === "accounts"
+                section ===
+                "accounts"
               }
               onClick={() =>
-                setSection("accounts")
+                setSection(
+                  "accounts",
+                )
               }
             >
               Accounts
@@ -515,6 +569,20 @@ export default function SettingsModal({
               }
             >
               Parameters
+            </SettingsButton>
+
+            <SettingsButton
+              active={
+                section ===
+                "cash-flow"
+              }
+              onClick={() =>
+                setSection(
+                  "cash-flow",
+                )
+              }
+            >
+              Cash Flow
             </SettingsButton>
           </div>
 
@@ -546,7 +614,8 @@ export default function SettingsModal({
           {/* GENERAL                                           */}
           {/* ================================================= */}
 
-          {section === "general" && (
+          {section ===
+            "general" && (
             <section>
               <SectionHeader
                 title="General"
@@ -554,15 +623,17 @@ export default function SettingsModal({
               />
 
               <div className="mt-8 max-w-xl space-y-12">
-
                 <FieldLabel label="Country / Region">
                   <select
-                    value={country}
+                    value={
+                      country
+                    }
                     onChange={(
                       event,
                     ) => {
                       const nextCountry =
-                        event.target
+                        event
+                          .target
                           .value as CountryCode;
 
                       setCountry(
@@ -573,6 +644,7 @@ export default function SettingsModal({
                        * Helpful default when
                        * changing region.
                        */
+
                       setDisplayCurrency(
                         nextCountry ===
                           "CA"
@@ -594,7 +666,9 @@ export default function SettingsModal({
                           : "Individual Brokerage",
                       );
                     }}
-                    className={inputClass}
+                    className={
+                      inputClass
+                    }
                   >
                     <option value="CA">
                       Canada
@@ -615,11 +689,14 @@ export default function SettingsModal({
                       event,
                     ) =>
                       setDisplayCurrency(
-                        event.target
+                        event
+                          .target
                           .value as CurrencyCode,
                       )
                     }
-                    className={inputClass}
+                    className={
+                      inputClass
+                    }
                   >
                     <option value="CAD">
                       CAD — Canadian Dollar
@@ -639,13 +716,14 @@ export default function SettingsModal({
                   onClick={() =>
                     void handleSaveSettings()
                   }
-                  className={primaryButtonClass}
+                  className={
+                    primaryButtonClass
+                  }
                 >
                   {settingsSaving
                     ? "Saving..."
                     : "Save changes"}
                 </button>
-
               </div>
             </section>
           )}
@@ -654,18 +732,21 @@ export default function SettingsModal({
           {/* ACCOUNTS                                          */}
           {/* ================================================= */}
 
-          {section === "accounts" && (
+          {section ===
+            "accounts" && (
             <section>
               <SectionHeader
                 title="Accounts"
                 description="Create the accounts you want to track independently."
               />
 
-              {accounts.length > 0 && (
+              {accounts.length >
+                0 && (
                 <div className="mt-8 grid gap-3 md:grid-cols-2">
-
                   {accounts.map(
-                    (account) => (
+                    (
+                      account,
+                    ) => (
                       <button
                         type="button"
                         key={
@@ -683,7 +764,6 @@ export default function SettingsModal({
                         className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4 text-left transition hover:border-emerald-500/30 hover:bg-emerald-500/[0.04]"
                       >
                         <div className="flex items-start justify-between gap-4">
-
                           <div>
                             <p className="font-medium text-white">
                               {
@@ -703,23 +783,19 @@ export default function SettingsModal({
                               account.defaultCurrency
                             }
                           </span>
-
                         </div>
                       </button>
                     ),
                   )}
-
                 </div>
               )}
 
               <div className="mt-8 max-w-xl rounded-2xl border border-white/[0.07] bg-black/20 p-5">
-
                 <h3 className="font-medium text-white">
                   Add account
                 </h3>
 
                 <div className="mt-5 space-y-5">
-
                   <FieldLabel label="Account name">
                     <input
                       value={
@@ -729,7 +805,8 @@ export default function SettingsModal({
                         event,
                       ) =>
                         setAccountName(
-                          event.target
+                          event
+                            .target
                             .value,
                         )
                       }
@@ -749,7 +826,8 @@ export default function SettingsModal({
                         event,
                       ) =>
                         setAccountType(
-                          event.target
+                          event
+                            .target
                             .value,
                         )
                       }
@@ -758,12 +836,20 @@ export default function SettingsModal({
                       }
                     >
                       {accountTypes.map(
-                        (type) => (
+                        (
+                          type,
+                        ) => (
                           <option
-                            key={type}
-                            value={type}
+                            key={
+                              type
+                            }
+                            value={
+                              type
+                            }
                           >
-                            {type}
+                            {
+                              type
+                            }
                           </option>
                         ),
                       )}
@@ -779,7 +865,8 @@ export default function SettingsModal({
                         event,
                       ) =>
                         setAccountCurrency(
-                          event.target
+                          event
+                            .target
                             .value as CurrencyCode,
                         )
                       }
@@ -813,7 +900,6 @@ export default function SettingsModal({
                       ? "Creating..."
                       : "Add account"}
                   </button>
-
                 </div>
               </div>
             </section>
@@ -823,20 +909,22 @@ export default function SettingsModal({
           {/* ACCOUNT PARAMETERS                                */}
           {/* ================================================= */}
 
-          {section === "parameters" && (
+          {section ===
+            "parameters" && (
             <section>
               <SectionHeader
                 title="Account Parameters"
                 description="These values belong only to the selected account."
               />
 
-              {accounts.length === 0 ? (
+              {accounts.length ===
+              0 ? (
                 <div className="mt-8 rounded-2xl border border-white/[0.07] bg-white/[0.03] p-8 text-center">
-
                   <p className="text-neutral-400">
-                    Create an account
-                    before configuring
-                    its parameters.
+                    Create an
+                    account before
+                    configuring its
+                    parameters.
                   </p>
 
                   <button
@@ -848,13 +936,12 @@ export default function SettingsModal({
                     }
                     className="mt-4 text-sm font-medium text-emerald-400 hover:text-emerald-300"
                   >
-                    Create an account
+                    Create an
+                    account
                   </button>
-
                 </div>
               ) : (
                 <div className="mt-8 max-w-xl space-y-6">
-
                   <FieldLabel label="Account">
                     <select
                       value={
@@ -864,7 +951,8 @@ export default function SettingsModal({
                         event,
                       ) =>
                         setSelectedAccountId(
-                          event.target
+                          event
+                            .target
                             .value,
                         )
                       }
@@ -873,7 +961,9 @@ export default function SettingsModal({
                       }
                     >
                       {accounts.map(
-                        (account) => (
+                        (
+                          account,
+                        ) => (
                           <option
                             key={
                               account.id
@@ -900,7 +990,8 @@ export default function SettingsModal({
                         event,
                       ) =>
                         setParameterName(
-                          event.target
+                          event
+                            .target
                             .value,
                         )
                       }
@@ -929,7 +1020,8 @@ export default function SettingsModal({
                         event,
                       ) =>
                         setParameterCurrency(
-                          event.target
+                          event
+                            .target
                             .value as CurrencyCode,
                         )
                       }
@@ -957,7 +1049,8 @@ export default function SettingsModal({
                         event,
                       ) =>
                         setStartingDate(
-                          event.target
+                          event
+                            .target
                             .value,
                         )
                       }
@@ -979,7 +1072,8 @@ export default function SettingsModal({
                         event,
                       ) =>
                         setStartingCapital(
-                          event.target
+                          event
+                            .target
                             .value,
                         )
                       }
@@ -999,7 +1093,8 @@ export default function SettingsModal({
                         event,
                       ) =>
                         setStartingCapitalCurrency(
-                          event.target
+                          event
+                            .target
                             .value as CurrencyCode,
                         )
                       }
@@ -1033,12 +1128,32 @@ export default function SettingsModal({
                       ? "Saving..."
                       : "Save account parameters"}
                   </button>
-
                 </div>
               )}
             </section>
           )}
 
+          {/* ================================================= */}
+          {/* CASH FLOW                                         */}
+          {/* ================================================= */}
+
+          {section ===
+            "cash-flow" && (
+            <CashFlowSection
+              accounts={
+                accounts
+              }
+              cashFlows={
+                cashFlows
+              }
+              onAddCashFlow={
+                onAddCashFlow
+              }
+              onDeleteCashFlow={
+                onDeleteCashFlow
+              }
+            />
+          )}
         </div>
       </div>
     </div>
@@ -1053,7 +1168,9 @@ export default function SettingsModal({
 
 interface SettingsButtonProps {
   active: boolean;
+
   onClick: () => void;
+
   children: React.ReactNode;
 }
 
@@ -1079,6 +1196,7 @@ function SettingsButton({
 
 interface SectionHeaderProps {
   title: string;
+
   description: string;
 }
 
@@ -1105,6 +1223,7 @@ function SectionHeader({
 
 interface FieldLabelProps {
   label: string;
+
   children: React.ReactNode;
 }
 

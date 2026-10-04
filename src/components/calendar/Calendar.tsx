@@ -1,8 +1,22 @@
 import type {
+  Account,
+} from "../../types/account";
+
+import type {
+  CashFlow,
+} from "../../types/cashFlow";
+
+import type {
   PerformanceEntry,
 } from "../../types/entry";
 
-import { getCalendarDays } from "../../utils/calendar";
+import {
+  getCalendarDays,
+} from "../../utils/calendar";
+
+import {
+  getDailyPerformance,
+} from "../../utils/performance";
 
 import CalendarDay from "./CalendarDay";
 
@@ -12,6 +26,10 @@ interface CalendarProps {
   month: number;
 
   entries: PerformanceEntry[];
+
+  cashFlows: CashFlow[];
+
+  account: Account;
 
   onDayClick: (
     date: string,
@@ -32,6 +50,8 @@ export default function Calendar({
   year,
   month,
   entries,
+  cashFlows,
+  account,
   onDayClick,
 }: CalendarProps) {
   const calendarDays =
@@ -88,6 +108,14 @@ export default function Calendar({
                   calendarDay.date,
               );
 
+            const dailyPerformance =
+              getDailyPerformance(
+                account,
+                entries,
+                cashFlows,
+                calendarDay.date,
+              );
+
             return (
               <CalendarDay
                 key={
@@ -101,6 +129,12 @@ export default function Calendar({
                 }
                 entries={
                   dayEntries
+                }
+                returnPercentage={
+                  dailyPerformance.returnPercentage
+                }
+                currency={
+                  account.defaultCurrency
                 }
                 onClick={
                   onDayClick

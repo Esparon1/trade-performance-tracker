@@ -15,7 +15,6 @@ import type {
 import {
   formatAmount,
   formatDate,
-  formatPercentage,
 } from "../../utils/format";
 
 interface AddEntryInput {
@@ -69,13 +68,6 @@ export default function DailyEntryModal({
   const [amount, setAmount] =
     useState("");
 
-  const [
-    currency,
-    setCurrency,
-  ] = useState<CurrencyCode>(
-    account.defaultCurrency,
-  );
-
   const [notes, setNotes] =
     useState("");
 
@@ -83,20 +75,9 @@ export default function DailyEntryModal({
     useState("");
 
   /*
-   * Reset default currency when account changes.
-   */
-
-  useEffect(() => {
-    setCurrency(
-      account.defaultCurrency,
-    );
-  }, [
-    account.id,
-    account.defaultCurrency,
-  ]);
-
-  /*
+   * =====================================================
    * ESCAPE
+   * =====================================================
    */
 
   useEffect(() => {
@@ -167,8 +148,20 @@ export default function DailyEntryModal({
         amount:
           amountValue,
 
-        currency,
+        /*
+         * Currency always follows
+         * the account.
+         */
+        currency:
+          account.defaultCurrency,
 
+        /*
+         * Percentages are calculated
+         * from account equity.
+         *
+         * We no longer manually store
+         * a percentage for new trades.
+         */
         percentage: null,
 
         notes:
@@ -185,10 +178,6 @@ export default function DailyEntryModal({
     }
 
     setAmount("");
-
-    setCurrency(
-      account.defaultCurrency,
-    );
 
     setNotes("");
 
@@ -223,6 +212,7 @@ export default function DailyEntryModal({
         <div className="flex items-start justify-between gap-4">
 
           <div>
+
             <p className="text-xs font-medium uppercase tracking-[0.16em] text-emerald-400/70">
               {account.name}
             </p>
@@ -239,6 +229,7 @@ export default function DailyEntryModal({
                 date,
               )}
             </p>
+
           </div>
 
           <button
@@ -300,29 +291,12 @@ export default function DailyEntryModal({
                               entry.amount,
                             )}
 
-                            {entry.currency && (
-                              <span className="ml-1 text-xs font-medium text-neutral-500">
-                                {
-                                  entry.currency
-                                }
-                              </span>
-                            )}
-                          </span>
-                        )}
+                            <span className="ml-1 text-xs font-medium text-neutral-500">
+                              {
+                                account.defaultCurrency
+                              }
+                            </span>
 
-                        {entry.percentage !==
-                          null && (
-                          <span
-                            className={`text-sm ${
-                              entry.percentage >=
-                              0
-                                ? "text-emerald-400/80"
-                                : "text-red-400/80"
-                            }`}
-                          >
-                            {formatPercentage(
-                              entry.percentage,
-                            )}
                           </span>
                         )}
 
@@ -362,6 +336,7 @@ export default function DailyEntryModal({
               )}
 
             </div>
+
           </div>
         )}
 
@@ -377,11 +352,12 @@ export default function DailyEntryModal({
             Record the realized profit or loss for this trade.
           </p>
 
-          {/* P/L + CURRENCY */}
+          {/* P/L + LOCKED CURRENCY */}
 
           <div className="mt-5 grid gap-4 sm:grid-cols-[1fr_150px]">
 
             <label>
+
               <span className="mb-2 block text-sm text-neutral-300">
                 P/L amount
               </span>
@@ -403,36 +379,56 @@ export default function DailyEntryModal({
                 placeholder="Example: 250 or -120"
                 className="h-12 w-full rounded-xl border border-white/[0.09] bg-[#151817] px-4 text-neutral-200 outline-none transition focus:border-emerald-500/40"
               />
+
             </label>
 
-            <label>
+            <div>
+
               <span className="mb-2 block text-sm text-neutral-300">
                 Currency
               </span>
 
-              <select
-                value={
-                  currency
-                }
-                onChange={(
-                  event,
-                ) =>
-                  setCurrency(
-                    event.target
-                      .value as CurrencyCode,
-                  )
-                }
-                className="h-12 w-full rounded-xl border border-white/[0.09] bg-[#151817] px-4 text-neutral-200 outline-none transition focus:border-emerald-500/40"
+              <div
+                className="flex h-12 w-full items-center justify-between rounded-xl border border-white/[0.07] bg-white/[0.025] px-4 text-neutral-400"
+                title="Currency is determined by the selected account."
               >
-                <option value="CAD">
-                  CAD
-                </option>
 
-                <option value="USD">
-                  USD
-                </option>
-              </select>
-            </label>
+                <span className="font-medium">
+                  {
+                    account.defaultCurrency
+                  }
+                </span>
+
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  className="h-4 w-4 text-neutral-600"
+                  aria-hidden="true"
+                >
+                  <rect
+                    x="5"
+                    y="10"
+                    width="14"
+                    height="10"
+                    rx="2"
+                  />
+
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M8 10V7a4 4 0 018 0v3"
+                  />
+                </svg>
+
+              </div>
+
+              <p className="mt-1.5 text-[11px] text-neutral-600">
+                Account currency
+              </p>
+
+            </div>
 
           </div>
 
@@ -503,6 +499,7 @@ export default function DailyEntryModal({
         </div>
 
       </section>
+
     </div>
   );
 }
